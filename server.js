@@ -1,105 +1,224 @@
 const http = require('http')
-const path = require('path')
 const fs = require('fs')
+const path = require('path')
+const Url = require('url')
+const port = 3099					// 定义端口变量
+const domain = 'http://localhost'	// 指定域名或ip
 
-const server = http.createServer()
-const port = 3099
+const server = http.createServer((req, res) => {
+	const {url, method} = req
+	const root = path.resolve(__dirname)
 
-server.on('request', (req, res) => {
-  const {url,method} = req
+	// 设置常用头信息
+	res.setHeader('Access-Control-Allow-Origin', domain)
+	res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+	res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
 
-  console.log("url is ", url)
-  console.log("method is ", method)
+	// 处理 /favicon.ico
+	if(method === 'GET' && url === '/favicon.ico') {
+		res.statusCode = 200
+		res.end()
+		return
+	}
 
-  // 1.处理 /favicon.ico 请求
-  if(url === '/favicon.ico' && method === 'GET') {
-    res.writeHead(200,'Content-Type','text/plain;');
-    res.end("have no favicon.ico")
-  }
+	// 处理 OPTINOS 请求
+	if(method === 'OPTIONS') {
+		res.writeHead(200)
+		res.end()
+		return
+	}
 
-  // 2.处理 / 请求，获取 index 文件
-  if(url === '/' && method === 'GET') {
-    const pathfile = path.join(__dirname, 'index.html')
-    // console.log(`pathfile is ${pathfile}`)
+	// 获取响应页面 index.html
+	if(method === 'GET' && url === '/') {
+		const index = path.join(root, 'index.html')
+		// 创建读取文件流
+		const reader = fs.createReadStream(index)
 
-    fs.readFile(pathfile, (err, data) => {
-      if(err) {
-        res.writeHead(404,'Content-Type','text/plain;');
-        res.write("Error 404");
-        res.end();
-      } else {
-        res.writeHead(200,'Content-Type','text/html; charSet="utf8"');
-        res.write(data);
-        res.end();
-      }
-    })
-  }
+		res.writeHead(200, {'Content-Type': 'text/html'})
+		reader.pipe(res)
+		reader.on('error', err => console.error('读取文件失败', err.message))
+		return
+	}
+
+	// 接收分段上传的大文件
+	if(method === 'POST' && url === '/upload') {
+		// 获得边界的二进制
+		const contentType = req.headers['content-type'] || ""
+		const bdy = contentType.match(/boundary=(.+)$/)
+
+		if(!bdy) {
+			res.statusCode = 400
+			res.end("content-type 中丢失了边界！")
+			return
+		}
+
+		const bd = Buffer.from('--' + bdy[1])
+		let rawData = Buffer.alloc(0)
+
+		req.on('data', chunk => {
+			rawData = Buffer.concat([rawData, chunk])
+		})
+
+		req.on('end', () => {
+			let startIndex = 0,index
+			let filename,fileindex,filebody
+			const parts = []
+
+			// 从数据块中分隔出不同的字段部分
+			while((index = rawData.indexOf(bd, startIndex)) !== -1) {
+				const part = rawData.slice(startIndex, index)
+
+				if(part.length > 0) {
+					parts.push(part)
+				}
+
+				startIndex = index + bd.length
+			}
+
+			// 获取字段的键与值
+			parts.forEach(item => {
+				const end = item.indexOf('\r\n\r\n')
+				const head = item.slice(0, end).toString()
+				const key = head.match(/name="(.+?)"/)[1]
+				const value = item.slice(end + 4, item.length - 2)
+
+				switch(key) {
+				case 'name':
+					filename = value.toString()
+					break
+				case 'index':
+					fileindex = value.toString()
+					break
+				case 'file':
+					filebody = value
+				}
+			})
+
+			// 创建目录
+			if(!fs.existsSync('./upload')) {
+				fs.mkdirSync('./upload')
+			}
+
+			// 创建写入文件流
+			const writer = fs.createWriteStream("./upload/" + filename + "." + fileindex)
+
+			// 写入文件
+			writer.write(filebody)
+			writer.end(() => {
+				res.writeHead(200, {'Content-Type': 'text/plain'})
+				res.end(`chunk has received ${fileindex}`)
+			})
+		})
+		return
+	}
+
+	// 合并大文件的多个块
+	if(method === 'POST' && url === '/upload/combine') {
+		let body = ''
+
+		req.on('data', chunk => body += chunk)
+
+		req.on('end', () => {
+			const filename = JSON.parse(body)
+
+			// 筛选出指定名称的文件块
+			fs.readdir('./upload', (err, files) => {
+				if(err) {
+					console.log(err)
+					return
+				}
+
+				// 按照文件的索引值排序
+				const chunks = files.filter(file => file.startsWith(filename.name))
+				.sort((a,b) => {
+					const aIndex = parseInt(a.split('.').pop())
+					const bIndex = parseInt(b.split('.').pop())
+					return aIndex - bIndex
+				})
+
+				const filepath = path.join(root, 'upload', filename.name)
+
+				// 同步执行写入
+				chunks.forEach(item => {
+					const chunkpath = path.join(root, 'upload', item)
+					const data = fs.readFileSync(chunkpath)
+					fs.appendFileSync(filepath, data)
+					fs.unlinkSync(chunkpath)
+				})
+				res.statusCode = 200
+				res.setHeader('Content-Type', 'text/plain; charset=utf8')
+				res.end("上传完毕")
+			})
+
+		})
+		return
+	}
+
+	// 获取文件列表
+	const urlObj = Url.parse(url)
+	const pathObj = path.parse(urlObj.pathname)
+	if(method === 'GET' && url === '/filelist') {
+		const filedir = path.join(root, '/upload')
+
+		// 获取文件列表
+		fs.readdir(filedir, (err, files) => {
+			if(err) {
+				res.statusCode = 500
+				return res.end('目录读取错误')
+			}
+
+			if(!files.length) {
+				res.statusCode = 200
+				res.end("文件列表为空！")
+			} else {
+				res.statusCode = 200
+				res.write('<ul>')
+
+				files.forEach(file => {
+					const name = file
+					const link = path.join('/upload', file)
+					res.write(`<li><a href="${link}" target="_blank">${name}</a></li>`)
+				})
+
+				res.end('</ul>')
+			}
+		})
+		return
+	}
+
+	// 下载列表中的文件
+	if(method === 'GET' && pathObj.dir === '/upload') {
+		const filePath = path.join(root, urlObj.pathname)
+
+		;(async function (filelink) {
+			// 这里对文件名进行解码，因为中文文件只有被解码后才能识别
+			const file = decodeURIComponent(filelink)
+			res.statusCode = 200
+
+			try {
+				const stats = await fs.promises.stat(file)
+				if(stats.isFile) {
+					const readStream = fs.createReadStream(file)
+
+					readStream.pipe(res)
+				}
+
+			} catch (err) {
+				if(err.code === 'ENOENT') {
+					console.log("文件不存在")
+					res.end()
+				} else {
+					console.log("读取文件错误", err)
+					res.end()
+				}
+				return
+			}
+
+		})(filePath);
+		return
+	}
 
 
-
+}).listen(port, '0.0.0.0', () => {
+	console.log(`server running at http://localhost:${port}`)
 })
-
-server.listen(port, () => {
-  console.log(`server running at http://localhost:${port}`)
-})
-/*
-// 判断上传的是文件
-if(url === '/upload' && method === 'POST') {
-  // 获取每段数据边界
-  const bd = req.headers['content-type'].split('boundary=')[1]
-  // 创建二进制缓冲区
-  let bodyBuffer = Buffer.alloc(0)
-
-  req.on('data', chunk => {
-    bodyBuffer = Buffer.concat([bodyBuffer, chunk])   // 合并数据块
-  })
-
-  req.on('end', () => {
-    // 将数据块变成字符串后根据边界拆分成数组
-    // console.log(bodyBuffer)
-    let filename, fileDate, fdata, file_name
-    const parts = bodyBuffer.toString().split(`--${bd}`)
-
-    // 新的写法：处理每条数据
-    parts.forEach(part => {
-      // 这一步的判断很总要，能排除非表单数据(如 null)
-      if(part.includes("Content-Disposition: form-data;")) {
-
-        if(part.includes('filename="')) {
-          console.log(part.split("\r\n\r\n")[0])
-          file_name = part.match(/filename="(.+?)"/)[1]
-        }
-
-        const fname = part.match(/name="(.+?)"/)[1]
-        const fvalue = part.split("\r\n\r\n")[1].replace('\r\n$', '')
-
-        switch(fname) {
-        case "filename":
-          filename = fvalue
-          break
-        case "fileDate":
-          fileDate = fvalue
-          break
-        case "files":
-          fdata = Buffer.from(fvalue)
-        }
-      }
-    })
-
-    if(!file_name) {
-      console.log(`文件名获取不到`)
-      res.writeHead(500)
-      res.end(JSON.stringify("上传失败"))        
-    } else {
-    // 设置存储路径
-      const filePath = path.join(__dirname, 'upload', file_name)
-    // 同步写文件到本地
-      fs.writeFileSync(filePath, fdata)
-    // 这里返回到 req.on('end',() => {})
-      res.writeHead(200, {'Content-Type': 'application/json'})
-      res.end(JSON.stringify("上传成功"))
-      return
-    }
-  })
-}
-*/

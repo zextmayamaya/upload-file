@@ -3,9 +3,145 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>查看诗歌</title>
+	<title>临时上传文件</title>
 </head>
 <body>
-	<h1>上传文件</h1>
+	<style>
+		section {
+			display: none;
+			position: absolute;
+			left: calc(50% - 4em);
+			top: calc(50% - 1em);
+		}
+		p.info {
+			color: red;
+		}
+	</style>
+	<label for="file">选择文件</label>
+	<input type="file" id="file" name="file">
+	<button class="uploadFile">上传</button>
+	<p class="info"></p>
+	<section>文件上传中……</section>
+	<div class="filelist"></div>
+
+	<script>
+		const chunkSize = 1024 * 1024 * 2
+		const btn = document.querySelector('.uploadFile')
+		const info = document.querySelector('p.info')
+		const filelist = document.querySelector('div.filelist')
+
+		// 上传文件到服务器的地址
+		const url = 'http://localhost'
+		const port = 3099
+
+		getFileList()
+
+		btn.addEventListener('click', async () => {
+			const file = document.querySelector('input').files[0]
+			const maxSize = 1024 * 1024 * 1024
+
+			// 文件为空时提示需要选择一个文件
+			// 文件尺寸大于最大限制时提示无法上传
+			if(!file) {
+				info.textContent = '请选择一个文件上传'
+				setTimeout(() => {
+					info.textContent = ''
+				}, 3000)
+				return console.log('文件为空')
+			} else if( file.size > maxSize) {
+				document.querySelector('input').value = ''
+				return console.log('文件尺寸超过1GB, 无法上传')
+			}
+
+			const section = document.querySelector('body section')
+			section.style.display = 'block'
+
+			const chunks = Math.ceil(file.size / chunkSize)
+			// 定义计数器 counter，每上传一个文件块就记一次数，
+			// 等文件块全部上传，计数器的值等于文件块 chunks。
+			// 于是执行文件块的合并
+			let counter
+
+			// 将文件分成若干分
+			for(let i = 0; i < chunks; i++) {
+				const start = i * chunkSize
+				const j = i + 1
+				const end = Math.min(file.size, chunkSize * j)
+
+				counter = i + 1
+
+				// 截取文件块，并设置文件块信息
+				const chunk = file.slice(start, end)
+				const formdata = new FormData()
+				formdata.append('name', file.name)
+				formdata.append('index', i)
+				formdata.append('file', chunk)
+
+				// 同步形式发送请求(文件块)
+				try {
+					// 此地址为反向代理后的地址
+					const res = await fetch(`http://${url}:${port}/upload`, {
+						method: 'POST',
+						body: formdata
+					})
+
+				// 上传成功后返回信息
+					if(res.ok) {
+					// 如果块全部上传完成，就执行合并操作
+						if(counter === chunks) combineChunks(file.name)
+							const data = await res.text()
+						// console.log(data)
+					}
+				} catch (err) {
+					console.error("上传文件出错：",err)
+					section.style.display = 'block'
+				}
+
+			}
+
+			// 将分成块的大文件合并成一个文件
+			// 这里的异步请求需要设置成同步的形式，否则会在上一步文件块未写完就开始合并
+			async function combineChunks(filename) {
+				try {
+					// 此地址为反向代理后的地址
+					const res = await fetch("http://10.2.100.200:7000/upload/combine", {
+						method: 'POST',
+						headers: {'Content-Type': 'application/json;'},
+						body: JSON.stringify({name: filename})
+					})
+
+					if(res.ok) {
+						const data = await res.text()
+						console.log(data)
+						section.style.display = 'none'
+
+						getFileList()
+					}
+
+				} catch (err) {
+					console.error(err)
+				}
+			}
+
+			// 清空 input 的值
+			document.querySelector('input').value = ''
+		})
+
+		async function getFileList() {
+			console.log("获取目录中的文件")
+			const path = `http://${url}:${port}/filelist`
+			try {
+				const res = await fetch(path)
+
+				if(res.ok) {
+					const data = await res.text()
+					console.log("请求文件列表：", data)
+					filelist.innerHTML = data
+				}
+			} catch (err) {
+				console.error(err)
+			}
+		}
+	</script>
 </body>
 </html>
