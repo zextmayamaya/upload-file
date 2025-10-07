@@ -96,7 +96,7 @@
 	<script>
 		// 上传文件到服务器的地址
 		const url = 'tempuploadfile.apn.leapcell.app'
-		const port = 8080
+		// const port = 8080
 
 		// 上传按钮状态
 		;(function () {
@@ -163,7 +163,7 @@
 				// 同步形式发送请求(文件块)
 				try {
 					// 此地址为反向代理后的地址
-					const res = await fetch(`http://${url}:${port}/upload`, {
+					const res = await fetch(`https://${url}/upload`, {
 						method: 'POST',
 						body: formdata
 					})
@@ -187,7 +187,7 @@
 			async function combineChunks(filename) {
 				try {
 					// 此地址为反向代理后的地址
-					const res = await fetch(`http://${url}:${port}/upload/combine`, {
+					const res = await fetch(`https://${url}/upload/combine`, {
 						method: 'POST',
 						headers: {'Content-Type': 'application/json;'},
 						body: JSON.stringify({name: filename})
@@ -213,7 +213,7 @@
 
 		async function getFileList() {
 			console.log("获取目录中的文件")
-			const path = `http://${url}:${port}/filelist`
+			const path = `https://${url}/filelist`
 			try {
 				const res = await fetch(path)
 
@@ -228,7 +228,7 @@
 		}
 
 		delfiles.addEventListener('click', async () => {
-			const path = `http://${url}:${port}/delete`
+			const path = `https://${url}/delete`
 			console.log("点击了删除按钮")
 
 			try {
