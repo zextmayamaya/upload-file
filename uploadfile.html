@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>临时上传文件</title>
+</head>
+<body>
+	<style>
+		#uploadContainer {
+			width: 300px;
+			margin: 0 auto;
+		}
+
+		.uploadBtn {
+			display: flex;
+			flex-direction: column;
+			justify-content: space-around;
+			align-items: center;
+			width: 100%;
+			height: 100px;
+			color: #ace;
+			border: 2px dashed #ace;
+			border-radius: 15px;
+			cursor: pointer;
+			font: 22px/30px sans-serif;
+
+			span:nth-child(2) {
+				color: #aaa;
+				font: 14px/18px sans-serif;
+			}
+
+			&:hover {
+				background-color: #def;
+			}
+		}
+
+		.uploadFile {
+			width: 100%;
+			height: 50px;
+			text-align: center;
+			font: 18px/50px sans-serif;
+			color: #fff;
+			background-color: #ace;
+			margin: 10px 0;
+			border-radius: 15px;
+			cursor: pointer;
+		}
+
+		section {
+			display: none;
+			position: absolute;
+			left: calc(50% - 4em);
+			top: calc(50% - 1em);
+		}
+		p.info {
+			color: red;
+		}
+		.filelist {
+			width: 300px;
+			margin: 10px auto;
+		}
+
+		#delete {
+			position: fixed;
+			width: 300px;
+			height: 50px;
+			border-radius: 15px;
+			bottom: 10px;
+			right: calc(50% - 150px);
+			color: #fff;
+			background-color: #c64cff;
+			text-align: center;
+			font: 18px/50px sans-serif;
+			cursor: pointer;
+		}
+	</style>
+
+	<div id="uploadContainer">
+		<label for="file" class="uploadBtn">
+			<span>选择文件</span>
+			<span>未选择文件</span>
+		</label>
+		<input type="file" id="file" name="file" hidden>
+		<div class="uploadFile">上传</div>
+	</div>
+
+	<!-- 提示信息：如果没有选择文件就上传！ -->
+	<p class="info"></p>
+	<!-- 上传进度提醒 -->
+	<section>文件上传中……</section>
+	<!-- 显示文件列表 -->
+	<div class="filelist"></div>
+	<div id="delete">删除全部文件</div>
+
+	<script>
+
+		// 上传按钮状态
+		;(function () {
+			const input = document.querySelector('#file')
+			const btn = document.querySelector('.uploadBtn')
+			const fileinfo = document.querySelector('.uploadBtn span:nth-child(2)')
+			
+			input.addEventListener('change', (e) => {
+				const files = e.target.files
+
+				fileinfo.innerHTML = files[0].name
+			})
+		})();
+
+		const chunkSize = 1024 * 1024 * 2
+		const btn = document.querySelector('.uploadFile')
+		const info = document.querySelector('p.info')
+		const filelist = document.querySelector('div.filelist')
+		const delfiles = document.querySelector('#delete')
+
+		// 上传文件到服务器的地址
+		const url = 'tempuploadfile.netlify.app'
+		const port = 3099
+
+		getFileList()
+
+		btn.addEventListener('click', async () => {
+			const file = document.querySelector('input').files[0]
+			const maxSize = 1024 * 1024 * 50
+
+			// 文件为空时提示需要选择一个文件
+			// 文件尺寸大于最大限制时提示无法上传
+			if(!file) {
+				info.textContent = '请选择一个文件上传'
+				setTimeout(() => {
+					info.textContent = ''
+				}, 3000)
+				return console.log('文件为空')
+			} else if( file.size > maxSize) {
+				document.querySelector('input').value = ''
+				return console.log('文件尺寸超过50MB, 无法上传')
+			}
+
+			const section = document.querySelector('body section')
+			section.style.display = 'block'
+
+			const chunks = Math.ceil(file.size / chunkSize)
+			// 定义计数器 counter，每上传一个文件块就记一次数，
+			// 等文件块全部上传，计数器的值等于文件块 chunks。
+			// 于是执行文件块的合并
+			let counter
+
+			// 将文件分成若干分
+			for(let i = 0; i < chunks; i++) {
+				const start = i * chunkSize
+				const j = i + 1
+				const end = Math.min(file.size, chunkSize * j)
+
+				counter = i + 1
+
+				// 截取文件块，并设置文件块信息
+				const chunk = file.slice(start, end)
+				const formdata = new FormData()
+				formdata.append('name', file.name)
+				formdata.append('index', i)
+				formdata.append('file', chunk)
+
+				// 同步形式发送请求(文件块)
+				try {
+					// 此地址为反向代理后的地址
+					const res = await fetch(`http://${url}:${port}/upload`, {
+						method: 'POST',
+						body: formdata
+					})
+
+				// 上传成功后返回信息
+					if(res.ok) {
+					// 如果块全部上传完成，就执行合并操作
+						if(counter === chunks) combineChunks(file.name)
+							const data = await res.text()
+						// console.log(data)
+					}
+				} catch (err) {
+					console.error("上传文件出错：",err)
+					section.style.display = 'block'
+				}
+
+			}
+
+			// 将分成块的大文件合并成一个文件
+			// 这里的异步请求需要设置成同步的形式，否则会在上一步文件块未写完就开始合并
+			async function combineChunks(filename) {
+				try {
+					// 此地址为反向代理后的地址
+					const res = await fetch(`http://${url}:${port}/upload/combine`, {
+						method: 'POST',
+						headers: {'Content-Type': 'application/json;'},
+						body: JSON.stringify({name: filename})
+					})
+
+					if(res.ok) {
+						const data = await res.text()
+						console.log(data)
+						section.style.display = 'none'
+
+						getFileList()
+					}
+
+				} catch (err) {
+					console.error(err)
+				}
+			}
+
+			// 清空 input 的值
+			document.querySelector('input').value = ''
+			document.querySelector('.uploadBtn span:nth-child(2)').innerHTML = '未选择文件'
+		})
+
+		async function getFileList() {
+			console.log("获取目录中的文件")
+			const path = `http://${url}:${port}/filelist`
+			try {
+				const res = await fetch(path)
+
+				if(res.ok) {
+					const data = await res.text()
+					console.log("请求文件列表：", data)
+					filelist.innerHTML = data
+				}
+			} catch (err) {
+				console.error("获取文件列表失败：",err)
+			}
+		}
+
+		delfiles.addEventListener('click', async () => {
+			const path = `http://${url}:${port}/delete`
+			console.log("点击了删除按钮")
+
+			try {
+				const res = await fetch(path)
+				console.log(res)
+				if(res.ok) {
+					const data = res.text()
+					console.log(data)
+					getFileList()
+				}
+			} catch (err) {
+				console.log("删除文件失败：", err)
+			}
+		})
+	</script>
+</body>
+</html>

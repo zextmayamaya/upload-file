@@ -3,7 +3,7 @@ const fs = require('fs')
 const path = require('path')
 const Url = require('url')
 const port = 3099					// 定义端口变量
-const domain = 'http://localhost'	// 指定域名或ip
+const domain = 'http://tempuploadfile.netlify.app'	// 指定域名或ip
 
 const server = http.createServer((req, res) => {
 	const {url, method} = req
