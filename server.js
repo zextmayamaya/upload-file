@@ -16,7 +16,7 @@
 
 		// 处理 /favicon.ico
 		if(method === 'GET' && url === '/favicon.ico') {
-			res.statusCode = 200
+			res.writeHead(204)
 			res.end()
 			return
 		}
@@ -29,7 +29,7 @@
 		}
 
 		// 处理 leapcell 的健康检查路径
-		if (req.url === '/kaithhealth' && req.method === 'GET') {
+		if (req.url === '/kaithhealthcheck' && req.method === 'GET') {
 			res.writeHead(200, { 'Content-Type': 'text/plain' })
 			res.end('OK')
 			return
