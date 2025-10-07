@@ -94,6 +94,9 @@
 	<div id="delete">删除全部文件</div>
 
 	<script>
+		// 上传文件到服务器的地址
+		const url = 'tempuploadfile.apn.leapcell.app'
+		const port = 8080
 
 		// 上传按钮状态
 		;(function () {
@@ -113,10 +116,6 @@
 		const info = document.querySelector('p.info')
 		const filelist = document.querySelector('div.filelist')
 		const delfiles = document.querySelector('#delete')
-
-		// 上传文件到服务器的地址
-		const url = 'tempuploadfile.netlify.app'
-		const port = 3099
 
 		getFileList()
 
