@@ -16,7 +16,7 @@
 
 		// 处理 /favicon.ico
 		if(method === 'GET' && url === '/favicon.ico') {
-			res.writeHead(204)
+			res.writeHead(200)
 			res.end()
 			return
 		}
