@@ -190,7 +190,7 @@ const server = http.createServer((req, res) => {
 
 				files.forEach(file => {
 					const name = file
-					const link = path.join('/upload', file)
+					const link = path.join('/tmp/upload', file)
 					res.write(`<li><a href="${link}" target="_blank">${name}</a></li>`)
 				})
 
