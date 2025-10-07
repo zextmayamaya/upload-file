@@ -23,7 +23,8 @@
 
 		getFileList()
 		async function getFileList() {
-			const path = `https://${url}:${port}/filelist`
+			const path = `/filelist`
+			// const path = `https://${url}:${port}/filelist`
 			try {
 				const res = await fetch(path)
 
