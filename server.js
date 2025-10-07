@@ -5,8 +5,6 @@
 	const port = 8080					// 定义端口变量
 	const domain = process.env.zxz	// 指定域名或ip
 
-	console.log(domain)
-
 	const server = http.createServer((req, res) => {
 		const {url, method} = req
 		const root = path.resolve(__dirname)
