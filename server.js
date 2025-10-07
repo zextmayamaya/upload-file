@@ -8,7 +8,7 @@ const port = 8080					// 定义端口变量
 const server = http.createServer((req, res) => {
 	const {url, method} = req
 	const root = path.resolve(__dirname)
-		
+
 	console.log(`[${new Date().toISOString()}] ${method} ${url}`)
 
 	// 设置常用头信息
@@ -32,6 +32,11 @@ const server = http.createServer((req, res) => {
 
 	// 处理 leapcell 的健康检查路径
 	if (req.url === '/kaithhealthcheck' && req.method === 'GET') {
+		res.writeHead(200, { 'Content-Type': 'text/plain' })
+		res.end('OK')
+		return
+	}
+	if (req.url === '/kaithheathcheck' && req.method === 'GET') {
 		res.writeHead(200, { 'Content-Type': 'text/plain' })
 		res.end('OK')
 		return
