@@ -10,7 +10,7 @@ const server = http.createServer((req, res) => {
 	const root = path.resolve(__dirname)
 
 	// 设置常用头信息
-	res.setHeader('Access-Control-Allow-Origin', domain)
+	res.setHeader('Access-Control-Allow-Origin', '*')
 	res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
 	res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
 
@@ -28,9 +28,9 @@ const server = http.createServer((req, res) => {
 		return
 	}
 
-	// 获取响应页面 index.html
-	if(method === 'GET' && url === '/') {
-		const index = path.join(root, 'index.html')
+	// 获取响应页面 uploadfile.html
+	if(method === 'GET' && url === '/uploadfile') {
+		const index = path.join(root, 'uploadfile.html')
 		// 创建读取文件流
 		const reader = fs.createReadStream(index)
 
@@ -215,6 +215,29 @@ const server = http.createServer((req, res) => {
 			}
 
 		})(filePath);
+		return
+	}
+
+	// 删除全部文件
+	if(method === 'GET' && url === '/delete') {
+		const folder = path.join(root, 'upload')
+		console.log(folder)
+		fs.rmSync(folder, {recursive: true, force: true})
+		fs.mkdirSync(folder)
+		res.writeHead(200)
+		res.end("文件已删除")
+		return
+	}
+
+	// 访问默认页面 index.html
+	if(method === 'GET' && url === '/') {
+		const index = path.join(root, 'index.html')
+		// 创建读取文件流
+		const reader = fs.createReadStream(index)
+
+		res.writeHead(200, {'Content-Type': 'text/html'})
+		reader.pipe(res)
+		reader.on('error', err => console.error('读取文件失败', err.message))
 		return
 	}
 
