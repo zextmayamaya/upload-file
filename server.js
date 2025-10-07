@@ -4,11 +4,12 @@ const path = require('path')
 const Url = require('url')
 const port = 8080					// 定义端口变量
 
-console.log(`[${new Date().toISOString()}] ${method} ${url}`)
 
 const server = http.createServer((req, res) => {
 	const {url, method} = req
 	const root = path.resolve(__dirname)
+		
+	console.log(`[${new Date().toISOString()}] ${method} ${url}`)
 
 	// 设置常用头信息
 	res.setHeader('Access-Control-Allow-Origin', '*')
