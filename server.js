@@ -3,7 +3,6 @@
 	const path = require('path')
 	const Url = require('url')
 	const port = 8080					// 定义端口变量
-	const domain = process.env.zxz	// 指定域名或ip
 
 	console.log(`[${new Date().toISOString()}] ${method} ${url}`)
 
@@ -252,5 +251,5 @@
 
 
 	}).listen(port, '0.0.0.0', () => {
-		console.log(`server running at http://localhost:${port}`)
+		console.log(`server running at port ${port}`)
 	})
