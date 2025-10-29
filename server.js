@@ -2,7 +2,7 @@ const http = require('http')
 const fs = require('fs')
 const path = require('path')
 const Url = require('url')
-const port = 8080					// 定义端口变量
+const port = 3020					// 定义端口变量
 
 
 const server = http.createServer((req, res) => {
@@ -109,12 +109,12 @@ const server = http.createServer((req, res) => {
 			})
 
 			// 创建目录
-			if(!fs.existsSync('/tmp/upload')) {
-				fs.mkdirSync('/tmp/upload')
+			if(!fs.existsSync('upload')) {
+				fs.mkdirSync('upload')
 			}
 
 			// 创建写入文件流
-			const writer = fs.createWriteStream("/tmp/upload/" + filename + "." + fileindex)
+			const writer = fs.createWriteStream("upload/" + filename + "." + fileindex)
 
 			// 写入文件
 			writer.write(filebody)
@@ -136,7 +136,7 @@ const server = http.createServer((req, res) => {
 			const filename = JSON.parse(body)
 
 			// 筛选出指定名称的文件块
-			fs.readdir('/tmp/upload', (err, files) => {
+			fs.readdir('upload', (err, files) => {
 				if(err) {
 					console.log(err)
 					return
@@ -150,11 +150,11 @@ const server = http.createServer((req, res) => {
 					return aIndex - bIndex
 				})
 
-				const filepath = path.join('/tmp', 'upload', filename.name)
+				const filepath = path.join('upload', filename.name)
 
 				// 同步执行写入
 				chunks.forEach(item => {
-					const chunkpath = path.join('/tmp', 'upload', item)
+					const chunkpath = path.join('upload', item)
 					const data = fs.readFileSync(chunkpath)
 					fs.appendFileSync(filepath, data)
 					fs.unlinkSync(chunkpath)
@@ -172,7 +172,7 @@ const server = http.createServer((req, res) => {
 	const urlObj = Url.parse(url)
 	const pathObj = path.parse(urlObj.pathname)
 	if(method === 'GET' && url === '/filelist') {
-		const filedir = path.join('/tmp', '/upload')
+		const filedir = path.join('upload')
 
 		// 获取文件列表
 		fs.readdir(filedir, (err, files) => {
@@ -190,7 +190,7 @@ const server = http.createServer((req, res) => {
 
 				files.forEach(file => {
 					const name = file
-					const link = path.join('/tmp/upload', file)
+					const link = path.join('upload', file)
 					res.write(`<li><a href="${link}" target="_blank">${name}</a></li>`)
 				})
 
@@ -202,7 +202,7 @@ const server = http.createServer((req, res) => {
 
 	// 下载列表中的文件
 	if(method === 'GET' && pathObj.dir === '/upload') {
-		const filePath = path.join('/tmp', urlObj.pathname)
+		const filePath = path.join(urlObj.pathname)
 
 		;(async function (filelink) {
 			// 这里对文件名进行解码，因为中文文件只有被解码后才能识别
@@ -234,7 +234,7 @@ const server = http.createServer((req, res) => {
 
 	// 删除全部文件
 	if(method === 'GET' && url === '/delete') {
-		const folder = path.join(/tmp', 'upload')
+		const folder = path.join('upload')
 		console.log(folder)
 		fs.rmSync(folder, {recursive: true, force: true})
 		fs.mkdirSync(folder)
