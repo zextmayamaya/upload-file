@@ -30,17 +30,6 @@ const server = http.createServer((req, res) => {
 		return
 	}
 
-	// 处理 leapcell 的健康检查路径
-	if (req.url === '/kaithhealthcheck' && req.method === 'GET') {
-		res.writeHead(200, { 'Content-Type': 'text/plain' })
-		res.end('OK')
-		return
-	}
-	if (req.url === '/kaithheathcheck' && req.method === 'GET') {
-		res.writeHead(200, { 'Content-Type': 'text/plain' })
-		res.end('OK')
-		return
-	}
 
 	// 获取响应页面 uploadfile.html
 	if(method === 'GET' && url === '/uploadfile') {
@@ -170,9 +159,10 @@ const server = http.createServer((req, res) => {
 
 	// 获取文件列表
 	const urlObj = Url.parse(url)
+    console.log("url object parse:",urlObj)
 	const pathObj = path.parse(urlObj.pathname)
 	if(method === 'GET' && url === '/filelist') {
-		const filedir = path.join('upload')
+		const filedir = path.join(root, 'upload')
 
 		// 获取文件列表
 		fs.readdir(filedir, (err, files) => {
@@ -202,7 +192,7 @@ const server = http.createServer((req, res) => {
 
 	// 下载列表中的文件
 	if(method === 'GET' && pathObj.dir === '/upload') {
-		const filePath = path.join(urlObj.pathname)
+		const filePath = path.join(root, urlObj.pathname)
 
 		;(async function (filelink) {
 			// 这里对文件名进行解码，因为中文文件只有被解码后才能识别
