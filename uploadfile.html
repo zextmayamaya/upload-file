@@ -121,6 +121,7 @@
 			
 			input.addEventListener('change', (e) => {
 				const files = e.target.files
+                console.log("文件名",files[0].name)
 
 				fileinfo.innerHTML = files[0].name
 			})

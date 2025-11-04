@@ -159,7 +159,7 @@ const server = http.createServer((req, res) => {
 
 	// 获取文件列表
 	const urlObj = Url.parse(url)
-    console.log("url object parse:",urlObj)
+    // console.log("url object parse:",urlObj)
 	const pathObj = path.parse(urlObj.pathname)
 	if(method === 'GET' && url === '/filelist') {
 		const filedir = path.join(root, 'upload')
@@ -225,7 +225,7 @@ const server = http.createServer((req, res) => {
 	// 删除全部文件
 	if(method === 'GET' && url === '/delete') {
 		const folder = path.join('upload')
-		console.log(folder)
+		// console.log(folder)
 		fs.rmSync(folder, {recursive: true, force: true})
 		fs.mkdirSync(folder)
 		res.writeHead(200)
