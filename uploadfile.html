@@ -48,10 +48,19 @@
 		}
 
 		section {
-			display: none;
 			position: absolute;
-			left: calc(50% - 4em);
-			top: calc(50% - 1em);
+			display: none;
+            width: 100vw;
+            height: 100vh;
+            background-color: #fff;
+            text-align: center;
+			left: 0;
+			top: 0;
+            z-index: 10;
+            
+            & p {
+                padding: 2em;
+            }
 		}
 		p.info {
 			color: red;
@@ -88,10 +97,16 @@
 	<!-- 提示信息：如果没有选择文件就上传！ -->
 	<p class="info"></p>
 	<!-- 上传进度提醒 -->
-	<section>文件上传中……</section>
 	<!-- 显示文件列表 -->
 	<div class="filelist"></div>
 	<div id="delete">删除全部文件</div>
+
+	<section>
+        <h5>文件上传中……</h5>
+        <p>
+        请不要刷新页面或是关闭页面，根据文件大小，上传时间会有不同。文件越大上传越慢，建议上传文件尺寸尽量小于5mb，可以较快速上传。
+        </p>
+    </section>
 
 	<script>
 		// 上传文件到服务器的地址
