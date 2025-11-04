@@ -121,9 +121,14 @@
 			
 			input.addEventListener('change', (e) => {
 				const files = e.target.files
-                console.log("文件名",files[0].name)
+                const filename = files[0].name
+                const fileArr = []
+                fileArr[0] = filename.slice(0,10) + "..."
+                fileArr[1] = filename.slice(filename.lastIndexOf("."))
+                console.log("文件名",fileArr[0] + fileArr[1])
 
-				fileinfo.innerHTML = files[0].name
+
+				fileinfo.innerHTML = fileArr[0] + fileArr[1]
 			})
 		})();
 
