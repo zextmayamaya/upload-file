@@ -2,7 +2,7 @@ const http = require('http')
 const fs = require('fs')
 const path = require('path')
 const Url = require('url')
-const port = 3020					// 定义端口变量
+const port = 80					// 定义端口变量
 
 
 const server = http.createServer((req, res) => {
